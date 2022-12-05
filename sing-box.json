@@ -13,7 +13,7 @@
       },
       {
         "tag": "local",
-        "address": "223.6.6.6",
+        "address": "tls://dns.nextdns.io",
         "detour": "direct"
       }
     ],
