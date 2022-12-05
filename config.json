@@ -47,6 +47,12 @@
     }
   ],
   "route": {
+    "geosite": {
+      "path": "/usr/local/share/sing-box/geosite.db"
+    },
+    "geoip": {
+      "path": "/usr/local/share/sing-box/geoip.db"
+    },
     "rules": [
       {
         "protocol": "dns",
