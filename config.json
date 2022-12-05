@@ -8,12 +8,12 @@
   "dns": {
     "servers": [
       {
-        "tag": "cloudflare",
+        "tag": "remote",
         "address": "tls://1.1.1.1"
       },
       {
         "tag": "local",
-        "address": "tls://dns.nextdns.io",
+        "address": "local",
         "detour": "direct"
       }
     ],
@@ -24,6 +24,7 @@
       "type": "tun",
       "stack": "gvisor",
       "inet4_address": "10.139.1.0/30",
+      "strict_route": true,
       "auto_route": true,
       "sniff": true
     }
