@@ -3,14 +3,21 @@
 
 set -eux pipefail
 
+# Export Qubes DNS nameserver NS1 and NS2
+# shellcheck source=/dev/null
+. /var/run/qubes/qubes-ns
+
 REMOTE="https://git.sr.ht/~qubes/proxy/blob/main"
 WORKDIR="/tmp"
+INET4_ADDR="$(echo "${NS1}" | sed 's/[0-9]*$/0/')"
 
 cd "${WORKDIR}"
 
+curl --proto '=https' -tlsv1.2 -sSfL "${REMOTE}/restrict-firewall" -o restrict-firewall
 curl --proto '=https' -tlsv1.2 -sSfL "${REMOTE}/sing-box.service" -o sing-box.service
 curl --proto '=https' -tlsv1.2 -sSfL "${REMOTE}/sing-box.json" -o sing-box.json
-curl --proto '=https' -tlsv1.2 -sSfL "${REMOTE}/restrict-firewall" -o restrict-firewall
+
+sed -i "s#10.139.1.0#${INET4_ADDR}#" sing-box.json
 
 sudo install -Dm644 -t /rw/config/proxy "${WORKDIR}/sing-box.json"
 sudo install -Dm644 -t /rw/config/proxy "${WORKDIR}/sing-box.service"
