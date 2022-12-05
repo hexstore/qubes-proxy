@@ -23,7 +23,7 @@
     {
       "type": "tun",
       "stack": "gvisor",
-      "inet4_address": "10.139.1.0/32",
+      "inet4_address": "10.139.1.0/30",
       "auto_route": true,
       "sniff": true
     }
