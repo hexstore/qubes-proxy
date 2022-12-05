@@ -10,9 +10,11 @@ cd "${WORKDIR}"
 
 curl --proto '=https' -tlsv1.2 -sSfL "${REMOTE}/sing-box.service" -o sing-box.service
 curl --proto '=https' -tlsv1.2 -sSfL "${REMOTE}/sing-box.json" -o sing-box.json
+curl --proto '=https' -tlsv1.2 -sSfL "${REMOTE}/restrict-firewall" -o restrict-firewall
 
 sudo install -Dm644 -t /rw/config/proxy "${WORKDIR}/sing-box.json"
 sudo install -Dm644 -t /rw/config/proxy "${WORKDIR}/sing-box.service"
+sudo install -Dm755 -t /rw/config/qubes-firewall.d "${WORKDIR}/restrict-firewall"
 
 sudo cp /rw/config/rc.local /rw/config/rc.local.old
 echo 'cp /rw/config/proxy/sing-box.service /etc/systemd/system/sing-box.service' | sudo tee -a /rw/config/rc.local
