@@ -30,10 +30,10 @@
 [user@dom0 ~]$ qvm-prefs sys-proxy maxmem 500
 ```
 
-接下来将安装sing-box到`/rw/usrlocal/bin`目录，配置文件`sing-box.json`被安装到`/rw/config/proxy`目录，
-守护运行配置文件`sing-box.service`被安装到`/rw/config/proxy`目录。
+接下来将安装sing-box到`/rw/usrlocal/bin`目录，配置文件`sing-box.json`被安装到`/rw/bind-dirs/etc/sing-box`目录，
+守护运行配置文件`sing-box.service`被安装到`/rw/bind-dirs/etc/systemd/system`目录。
 
-完成安装之后，您需要更改`/rw/config/proxy/sing-box.json`中的`outbounds`为自己的代理服务，
+完成安装之后，您需要更改`/rw/bind-dirs/etc/sing-box.json`中的`outbounds`为自己的代理服务，
 更多配置信息请参照[sing-box configuration](https://sing-box.sagernet.org/configuration/)。
 
 ```bash
