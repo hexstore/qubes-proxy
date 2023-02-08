@@ -2,6 +2,8 @@
 
 这是一个在Qubes OS中安装代理网络工具([sing-box](https://sing-box.sagernet.org/))的方案，旨在帮助Qubes OS用户在严重网络审查环境下突破封锁，让Qubes OS拥有连接Tor网络的能力。
 
+该项目主仓库在[sourcehut](https://git.sr.ht/~qubes/proxy)上，并镜像在[GitHub](https://github.com/hexstore/qubes-proxy)。
+
 ## 工作原理
 
 它基于Qubes OS的隔离机制，提供一个网络服务盒子，巧妙的利用了Qubes OS的全局DNS IP(10.139.1.1和10.139.1.2)作为tun设备的IP，并让流量经过它，为其它应用或服务盒子提供代理网络。
