@@ -10,42 +10,76 @@
 ##
 ##################################################################
 
-# Set firewall restriction policy
-
 # Export Qubes DNS nameserver NS1 and NS2
 . /var/run/qubes/qubes-ns
 
+# Fallback to obtaining environment variables
+ns=$(grep -v '^#' /etc/resolv.conf | grep nameserver | awk '{print $2}')
+if [ -z "${NS1}" ]; then
+  NS1=$(echo "${ns}" | cut -d " " -f 1)  # 10.139.1.1
+fi
+if [ -z "${NS2}" ]; then
+  NS2=$(echo "${ns}" | cut -d " " -f 2)  # 10.139.1.2
+fi
+
 # Stop all leaks between downstream (vif+) and upstream (Internet eth0):
+iptables -F OUTPUT
 iptables -P FORWARD DROP
 iptables -I FORWARD -o eth0 -j DROP
 iptables -I FORWARD -i eth0 -j DROP
 
-ip6tables -P FORWARD DROP
-ip6tables -I FORWARD -o eth0 -j DROP
-ip6tables -I FORWARD -i eth0 -j DROP
+# Ensure only traffic destined for the tun+ interface is forwarded
+iptables -F QBS-FORWARD
+iptables -A QBS-FORWARD -o tun+ -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+iptables -A QBS-FORWARD -i vif+ -o tun+ -j ACCEPT
+iptables -A QBS-FORWARD -j DROP
 
 # Block INPUT from proxy(s):
-iptables -P INPUT DROP
-iptables -I INPUT -i tun+ -j DROP
+#iptables -P INPUT DROP
+#iptables -I INPUT -i tun+ -j DROP
 
-ip6tables -P INPUT DROP
-ip6tables -I INPUT -i tun+ -j DROP
+# Restrict connections to tun device only
+iptables -D INPUT -j DROP
+iptables -A INPUT -i tun+ -j ACCEPT
+iptables -A INPUT -j DROP
 
-# Allow established v6 traffic (v4 rule already present):
+# Allow established traffic:
 #iptables -A INPUT -m conntrack --ctstate ESTABLISHED -j ACCEPT
-ip6tables -A INPUT -m conntrack --ctstate ESTABLISHED -j ACCEPT
 
 # Allow DNS lookups from local via tun device
 if [ -n "${NS1}" ]; then
-  iptables -I INPUT -i tun+ -p udp -s $NS1 --sport 53 -m state --state ESTABLISHED -j ACCEPT
-  iptables -I INPUT -i tun+ -p tcp -s $NS1 --sport 53 -m state --state ESTABLISHED -j ACCEPT
+  iptables -I INPUT -i tun+ -p udp -s "${NS1}" --sport 53 -m state --state ESTABLISHED -j ACCEPT
+  iptables -I INPUT -i tun+ -p tcp -s "${NS1}" --sport 53 -m state --state ESTABLISHED -j ACCEPT
 fi
 if [ -n "${NS2}" ]; then
-  iptables -I INPUT -i tun+ -p udp -s $NS2 --sport 53 -m state --state ESTABLISHED -j ACCEPT
-  iptables -I INPUT -i tun+ -p tcp -s $NS2 --sport 53 -m state --state ESTABLISHED -j ACCEPT
+  iptables -I INPUT -i tun+ -p udp -s "${NS2}" --sport 53 -m state --state ESTABLISHED -j ACCEPT
+  iptables -I INPUT -i tun+ -p tcp -s "${NS2}" --sport 53 -m state --state ESTABLISHED -j ACCEPT
 fi
 
 # Disable icmp packets
-#if iptables -C INPUT -p icmp -j ACCEPT
-#then iptables -D INPUT -p icmp -j ACCEPT
-#fi
+if iptables -C INPUT -i vif+ -p icmp -j ACCEPT; then
+  iptables -D INPUT -i vif+ -p icmp -j ACCEPT
+fi
+if iptables -C INPUT -i vif+ -j REJECT --reject-with icmp-host-prohibited; then
+  iptables -D INPUT -i vif+ -j REJECT --reject-with icmp-host-prohibited
+fi
+iptables -I INPUT -p icmp -j DROP
+
+# Drop invalid connections
+iptables -I INPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+iptables -I INPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j DROP
+iptables -I INPUT -f -j DROP
+iptables -I INPUT -p tcp -m tcp --tcp-flags SYN,RST SYN,RST -j DROP
+iptables -I INPUT -p tcp -m tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+iptables -I INPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,ACK -j DROP
+iptables -I INPUT -m state --state INVALID -j DROP
+iptables -I INPUT -m conntrack --ctstate INVALID -j DROP
+iptables -I OUTPUT -m state --state ESTABLISHED -j ACCEPT
+iptables -I OUTPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j REJECT --reject-with icmp-admin-prohibited
+iptables -I OUTPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j REJECT --reject-with icmp-admin-prohibited
+iptables -I OUTPUT -f -j REJECT --reject-with icmp-admin-prohibited
+iptables -I OUTPUT -p tcp -m tcp --tcp-flags SYN,RST SYN,RST -j REJECT --reject-with icmp-admin-prohibited
+iptables -I OUTPUT -p tcp -m tcp --tcp-flags FIN,SYN FIN,SYN -j REJECT --reject-with icmp-admin-prohibited
+iptables -I OUTPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,ACK -j REJECT --reject-with icmp-admin-prohibited
+iptables -I OUTPUT -m state --state INVALID -j REJECT --reject-with icmp-admin-prohibited
+iptables -I OUTPUT -m conntrack --ctstate INVALID -j REJECT --reject-with icmp-admin-prohibited
